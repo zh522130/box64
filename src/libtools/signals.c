@@ -927,6 +927,11 @@ else dynarec_log(LOG_INFO, "SIGILL at %p/%p for Dynablock (%p, x64addr=%p) with 
     #endif
     int Locks = unlockMutex();
     uint32_t prot = getProtection((uintptr_t)addr);
+    // some kernels report MAPERR instead of ACCERR on DYNAREC write-protected pages
+    if((sig==X64_SIGSEGV) && (addr) && (info->si_code == 1) && (prot&PROT_DYNAREC) && getMAllocated((uintptr_t)addr)) {
+        printf_log(LOG_DEBUG, "Workaround for suspicious si_code for %p / prot=0x%hhx\n", addr, prot);
+        info->si_code = 2;
+    }
     #ifdef BAD_SIGNAL
     // try to see if the si_code makes sense
     // the RK3588 tend to need a special Kernel that seems to have a weird behaviour sometimes
